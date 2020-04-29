@@ -1,0 +1,48 @@
+version: '3'
+
+services:
+  mysql:
+    image: mysql:5.6.36
+    environment:
+      MYSQL_ROOT_PASSWORD: mypass
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: mypass
+      MYSQL_DATABASE: mydb
+      TZ: Europe/Moscow
+    volumes:
+      - mysql-db:/var/lib/mysql
+      - ./mysql-conf.d:/etc/mysql/conf.d
+    ports:
+      - 3306:3306
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - 2181:2181
+
+  kafka-broker:
+    image: wurstmeister/kafka:2.11-0.10.2.2
+    ports:
+      - 9092:9092
+      - 7071:7071
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181/local
+      KAFKA_ADVERTISED_HOST_NAME: kafka-broker
+      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_CREATE_TOPICS: "simple_topic:1:1"
+
+  kafka-connect:
+    build: .
+    volumes:
+      - ./kafka-connect/cfg:/opt/kafka/cfg:rw
+    ports:
+      - 8083:8083
+      - 7072:7071
+    depends_on:
+      - kafka-broker
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181/local
+
+volumes:
+  mysql-db:
+    driver: local
